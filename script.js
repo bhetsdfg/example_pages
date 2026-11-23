@@ -1,20 +1,22 @@
-// 等待 DOM 載入完成
+// Shibuya gyaru mood: navbar reaction + little sparkle interaction
 document.addEventListener('DOMContentLoaded', () => {
-    
-    const navbar = document.querySelector('.navbar');
+  const navbar = document.querySelector('.navbar');
 
-    // 監聽滾動事件
-    window.addEventListener('scroll', () => {
-        // 如果滾動超過 50px，導覽列加入陰影與背景加深
-        if (window.scrollY > 50) {
-            navbar.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.3)';
-            navbar.style.background = '#0b0e14';
-        } else {
-            navbar.style.boxShadow = 'none';
-            navbar.style.background = 'rgba(11, 14, 20, 0.95)';
-        }
+  const updateNavbar = () => {
+    const scrolled = window.scrollY > 30;
+    navbar.classList.toggle('is-scrolled', scrolled);
+  };
+
+  updateNavbar();
+  window.addEventListener('scroll', updateNavbar, { passive: true });
+
+  // Add a tiny click bounce to the main call-to-action links.
+  document.querySelectorAll('.btn, .contact-item').forEach((link) => {
+    link.addEventListener('click', () => {
+      link.classList.add('is-clicked');
+      window.setTimeout(() => link.classList.remove('is-clicked'), 220);
     });
+  });
 
-    // 簡單的點擊回饋效果 (未來可擴充)
-    console.log("Welcome to my digital space!");
+  console.log('♡ Welcome to coconose — stay cute, stay iconic! ♡');
 });
