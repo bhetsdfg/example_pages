@@ -2,7 +2,7 @@
 :root {
     --bg-color: #0b0e14;       /* 深色背景 */
     --text-color: #e0e0e0;     /* 主要文字 */
-    --accent-color: #00d4ff;   /* 科技藍亮點 */
+    --accent-color: #ffce44;   /* 科技藍亮點 */
     --secondary-color: #1a1f29; /* 次要區塊背景 */
     --font-main: 'Segoe UI', Roboto, sans-serif;
 }
