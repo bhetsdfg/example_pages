@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 換成你的 Firebase Authentication UID（不要使用電子郵件）。
+    function developerUid() {
+      return 'PASTE_DEVELOPER_UID';
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isDeveloper() {
+      return signedIn() && request.auth.uid == developerUid();
+    }
+
+    function hasRole(role) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isMember() {
+      return hasRole('student') || hasRole('admin');
+    }
+
+    function validTitleAndBody() {
+      return request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 5000;
+    }
+
+    match /users/{uid} {
+      // 學生只能讀自己的資料；開發者才能列出所有使用者。
+      allow get: if signedIn() && (request.auth.uid == uid || isDeveloper());
+      allow list: if isDeveloper();
+
+      // 新帳號只能自行建立固定格式的 Student 資料。
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(['displayName', 'email', 'role', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['displayName', 'email', 'role', 'createdAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'student'
+        && request.resource.data.createdAt == request.time;
+
+      // 只有固定的開發者 UID 可以修改其他人的 role，且不能改其他欄位。
+      allow update: if isDeveloper()
+        && uid != developerUid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+        && request.resource.data.role in ['student', 'admin'];
+
+      allow delete: if false;
+    }
+
+    match /announcements/{id} {
+      // 未登入或未建立 user 文件的帳號無法讀公告。
+      allow read: if isMember();
+
+      allow create: if hasRole('admin')
+        && request.resource.data.keys().hasAll(['title', 'body', 'createdBy', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['title', 'body', 'createdBy', 'createdAt', 'updatedAt'])
+        && validTitleAndBody()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if hasRole('admin')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'body', 'updatedAt'])
+        && validTitleAndBody()
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if hasRole('admin');
+    }
+
+    // 其他集合預設全部拒絕；新增功能時必須另寫規則。
+  }
+}
